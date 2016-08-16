@@ -165,6 +165,14 @@ class Component(System):
         if isinstance(shape, int) and shape > 1:
             meta['shape'] = (shape,)
 
+        if 'low' in kwargs:
+            raise TypeError("Used arg 'low' when adding variable '%s'. "
+                            "Use 'lower' instead." % name)
+
+        if 'high' in kwargs:
+            raise TypeError("Used arg 'high' when adding variable '%s'. "
+                            "Use 'upper' instead." % name)
+
         return meta
 
     def add_param(self, name, val=_NotSet, **kwargs):
@@ -337,6 +345,16 @@ class Component(System):
         """
         return [k for k, acc in iteritems(self.unknowns._dat)
                       if not acc.pbo]
+
+    def components(self, local=False, recurse=False, include_self=False):
+        """
+        Returns
+        -------
+        iterator
+            Iterator over sub-`Components`.
+        """
+        if include_self:
+            yield self
 
     def _setup_variables(self, compute_indices=False):
         """
@@ -520,6 +538,7 @@ class Component(System):
             name = self._sysdata._scoped_abs_name(pathname)
             if name not in self.params:
                 self.params._add_unconnected_var(pathname, meta)
+
 
     def _sys_apply_nonlinear(self, params, unknowns, resids):
         """

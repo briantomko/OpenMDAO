@@ -19,7 +19,7 @@ from openmdao.core.mpi_wrap import MPI, debug
 from openmdao.core.system import System
 from openmdao.core.fileref import FileRef
 from openmdao.util.string_util import nearest_child, name_relative_to
-from openmdao.util.graph import collapse_nodes
+from openmdao.util.graph import collapse_nodes, break_strongly_connected
 
 #from openmdao.devtools.debug import diff_mem, mem_usage
 
@@ -86,8 +86,9 @@ class Group(System):
 
         self._gs_outputs = None
         self._run_apply = True
+        self._icache = {}
 
-    def _subsystem(self, name):
+    def find_subsystem(self, name):
         """
         Returns a reference to a named subsystem that is a direct or an indirect
         subsystem of the this system.  Raises an exception if the given name
@@ -494,7 +495,6 @@ class Group(System):
                                top_unknowns=top_unknowns,
                                impl=self._impl, alloc_derivs=alloc_derivs)
 
-
         # now that all of the vectors and subvecs are allocated, calculate
         # and cache a boolean flag telling us whether to run apply_linear for a
         # given voi and a given child system.
@@ -606,7 +606,7 @@ class Group(System):
                     # look up the Component that contains the source variable
                     scname = src.rsplit('.', 1)[0]
                     if mypath == scname[:mplen]:
-                        src_comp = self._subsystem(scname[mplen:])
+                        src_comp = self.find_subsystem(scname[mplen:])
                         if isinstance(src_comp, IndepVarComp):
                             params.append(tgt[mplen:])
                     else:
@@ -631,7 +631,7 @@ class Group(System):
         fd_unknowns = []
         for name, meta in iteritems(self.unknowns):
             # look up the subsystem containing the unknown
-            sub = self._subsystem(meta['pathname'].rsplit('.', 1)[0][len(mypath):])
+            sub = self.find_subsystem(meta['pathname'].rsplit('.', 1)[0][len(mypath):])
             if not isinstance(sub, IndepVarComp):
                 if not self.unknowns._dat[name].pbo:
                     fd_unknowns.append(name)
@@ -959,6 +959,116 @@ class Group(System):
             if isinstance(system, Group):
                 system.clear_dparams()  # only call on Groups
 
+    def assemble_jacobian(self, mode='fwd', method='assemble', mult=None):
+        """ Assemble and return an ndarray containing the Jacobian for this
+        Group.
+
+        Args
+        ----
+        system : `System`
+            Parent `System` object.
+
+        mode : string('fwd')
+            Derivative mode, can be 'fwd' or 'rev'.
+
+        method : string('assemble')
+            Method to assemble the jacobian to solve. Select 'MVP' to build the
+            Jacobian by calling apply_linear with columns of identity. Select
+            'assemble' to build the Jacobian by taking the calculated Jacobians in
+            each component and placing them directly into a clean identity matrix.
+
+        mult : function(None)
+            Solver mult function to coordinate the matrix vector product
+
+        Returns
+        -------
+        ndarray : Jacobian Matrix. Note: if mode is 'rev', then the transpose
+        Jacobian is returned.
+
+        dict of tuples : Contains the location of each derivative in the Jacobian. The
+        key is a tuple containing the component name string, and a tuple with the output
+        (derivative of) and param (derivative with respect to) variable names. The value
+        is a tuple of 4 indices: starting row, ending row, starting column, ending column.
+        Note, if mode is 'rev', then rows and columns are swapped.
+
+        """
+        u_vec = self.unknowns
+        n_edge = u_vec.vec.size
+
+        # OpenMDAO does matrix vector product.
+        if method == 'MVP':
+
+            ident = np.eye(n_edge)
+            icache = None
+
+            partials = np.empty((n_edge, n_edge))
+
+            for i in range(n_edge):
+                partials[:, i] = mult(ident[:, i])
+
+        # Assemble the Jacobian
+        else:
+
+            partials = -np.eye(n_edge)
+            icache = self._icache
+            conn = self.connections
+            sys_prom_name = self._sysdata.to_prom_name
+
+            for sub in self.components(recurse=True):
+
+                jac = sub._jacobian_cache
+
+                # This method won't work on components where apply_linear
+                # is overridden.
+                if jac is None:
+                    msg = "The 'assemble' jacobian_method is not supported when " + \
+                         "'apply_linear' is used on a component (%s)." % sub.pathname
+                    raise RuntimeError(msg)
+
+                sub_u = sub.unknowns
+                sub_name = sub.pathname
+
+                for key in jac:
+                    o_var, i_var = key
+                    key2 = (sub_name, key)
+
+                    # We cache the location of each variable in our jacobian
+                    if key2 not in icache:
+
+                        o_var_abs = '.'.join((sub_name, o_var))
+                        i_var_abs = '.'.join((sub_name, i_var))
+                        i_var_pro = sys_prom_name[i_var_abs]
+                        o_var_pro = sys_prom_name[o_var_abs]
+
+                        # States are fine ...
+                        if i_var in sub.states:
+                            pass
+
+                        #... but inputs need to find their source.
+                        elif i_var_pro not in u_vec:
+
+                            # Param is not relevant
+                            if i_var_abs not in conn:
+                                continue
+
+                            i_var_src = conn[i_var_abs][0]
+                            i_var_pro = sys_prom_name[i_var_src]
+
+                        o_start, o_end = u_vec._dat[o_var_pro].slice
+                        i_start, i_end = u_vec._dat[i_var_pro].slice
+
+                        icache[key2] = (o_start, o_end, i_start, i_end)
+
+                    else:
+                        (o_start, o_end, i_start, i_end) = icache[key2]
+
+                    if mode=='fwd':
+                        partials[o_start:o_end, i_start:i_end] = jac[o_var, i_var]
+                    else:
+                        partials[i_start:i_end, o_start:o_end] = jac[o_var, i_var].T
+
+        return partials, icache
+
     def set_order(self, new_order):
         """ Specifies a new execution order for this system. This should only
         be called after all subsystems have been added.
@@ -1062,45 +1172,16 @@ class Group(System):
         """
         broken_edges = []
 
-        strong = [s for s in nx.strongly_connected_components(graph)
-                  if len(s) > 1]
+        strong = (s for s in nx.strongly_connected_components(graph)
+                  if len(s) > 1)
 
-        if strong:
-            # copy the graph, because we don't want to modify the starting graph
-            graph = graph.subgraph(graph.nodes_iter())
+        # copy the graph, because we don't want to modify the starting graph
+        graph = graph.copy()
 
-        while strong:
-            # First of all, see if the cycle has in edges
-            in_edges = []
-            start = None
-            if len(strong[0]) < len(graph):
-                for s in strong[0]:
-                    count = len([u for u, v in graph.in_edges(s)
-                                if u not in strong[0]])
-                    in_edges.append((count, s))
-                in_edges = sorted(in_edges)
-                if in_edges[-1][0] > 0:
-                    start = in_edges[-1][1]  # take the node with the most in edges
-
-            if start is None:
-                # take the first system in the existing order that is found
-                # in the SCC and disconnect it from its predecessors that are
-                # also found in the SCC
-                for node in order:
-                    if self.pathname:
-                        node = '.'.join((self.pathname, node))
-                    if node in strong[0]:
-                        start = node
-                        break
-
-            # break cycles
-            for p in graph.predecessors(start):
-                if p in strong[0]:
-                    graph.remove_edge(p, start)
-                    broken_edges.append((p, start))
-
-            strong = [s for s in nx.strongly_connected_components(graph)
-                      if len(s) > 1]
+        # A digraph with no strongly connected components is a DAG, so it
+        # suffices to break the cycles within each strongly connected component
+        for scc in strong:
+            break_strongly_connected(graph, broken_edges, scc)
 
         return graph, broken_edges
 
@@ -1140,8 +1221,21 @@ class Group(System):
         template = "%s %s '%s'"
         out_stream.write(template % (" "*nest, klass, self.name))
 
-        out_stream.write("  NL: %s  LN: %s" % (self.nl_solver.__class__.__name__,
-                                               self.ln_solver.__class__.__name__))
+        nl_solve = self.nl_solver.__class__.__name__
+        try:
+            if self.nl_solver.ln_solver:
+                nl_solve += " (LN: %s)" % self.nl_solver.ln_solver.__class__.__name__
+        except:
+            pass
+
+        ln_solve = self.ln_solver.__class__.__name__
+        try:
+            if self.ln_solver.preconditioner:
+                ln_solve += " (PRE: %s)" % self.ln_solver.preconditioner.__class__.__name__
+        except:
+            pass
+
+        out_stream.write("  NL: %s  LN: %s" % (nl_solve, ln_solve))
         if sizes:
             commsz = self.comm.size if hasattr(self.comm, 'size') else 0
             template = "    req: %s  usize:%d  psize:%d  commsize:%d"

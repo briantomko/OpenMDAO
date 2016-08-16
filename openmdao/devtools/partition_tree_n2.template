@@ -98,13 +98,13 @@
                 </select>
             </fieldset>
         </span>
+        <br />
         <span class="control_panel">
             <fieldset>
                 <legend><b> Navigation </b> </legend>
                 <button onclick="ReturnToRootButtonClick()">Return To Root</button>
             </fieldset>
         </span>
-        <br />
         <span class="control_panel">
             <fieldset>
                 <legend><b> Display </b> </legend>
@@ -286,17 +286,6 @@
         fontSizeFirstOption.text = "Font Size (" + FONT_SIZE_PX + " px)";
         fontSizeSelectElement.selectedIndex = 0;
 
-        var outputNamingType = "Absolute";
-        var outputNamingSelectElement = document.getElementById("outputNamingSelect");
-        var outputNamingFirstOption = document.getElementById("outputNamingFirstOption");
-        outputNamingFirstOption.text = "Output Naming (" + outputNamingType + ")";
-        outputNamingSelectElement.selectedIndex = 0;
-
-        var paramViewType = "Hidden";
-        var paramViewSelectElement = document.getElementById("paramViewSelect");
-        var paramViewFirstOption = document.getElementById("paramViewFirstOption");
-        paramViewFirstOption.text = "Params (" + paramViewType + ")";
-        paramViewSelectElement.selectedIndex = 0;
 
         var currentPathElement = document.getElementById("currentPathId");
         document.getElementById("showCurrentPathCheckbox").checked = false;
@@ -768,9 +757,6 @@
 
         function GetText(d) {
             var retVal = d.name;
-            if(outputNamingType === "Promoted" && (d.type === "unknown" || d.type === "param") && zoomedElement.promotions && zoomedElement.promotions[d.absPathName] !== undefined) {
-                retVal = zoomedElement.promotions[d.absPathName];
-            }
             if(d.splitByColon && d.children && d.children.length > 0) retVal += ":";
             return retVal;
         }
@@ -2069,28 +2055,6 @@
             fontSizeFirstOption.text = "Font Size (" + FONT_SIZE_PX + " px)";
         }
 
-        function OutputNameSelectChange(){
-            if(outputNamingType !== outputNamingSelectElement.value){
-                outputNamingType = outputNamingSelectElement.value;
-                update();
-            }
-
-            outputNamingSelectElement.selectedIndex = 0;
-            outputNamingFirstOption.text = "Output Naming (" + outputNamingType + ")";
-        }
-
-        function ParamViewSelectChange(){
-            if(paramViewType !== paramViewSelectElement.value){
-                paramViewType = paramViewSelectElement.value;
-                showParams = (paramViewType === "Visible");
-                SetupLegend();
-                ComputeConnections();
-                update();
-            }
-
-            paramViewSelectElement.selectedIndex = 0;
-            paramViewFirstOption.text = "Params (" + paramViewType + ")";
-        }
 
         function ShowPathCheckboxChange(){
             currentPathElement.style.display = (document.getElementById("showCurrentPathCheckbox").checked) ? "block" : "none";
