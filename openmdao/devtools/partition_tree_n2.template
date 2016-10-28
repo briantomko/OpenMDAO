@@ -347,6 +347,7 @@
 
         <div id="currentPathId" style="display:none"></div>
         <div id="d3_content_div"></div>
+        <div id="connectionId"></div>
     </div>
 
     <script>
@@ -706,10 +707,124 @@
 
         var pTreeGroup = svg.append("g");
 
+        var n2BackgroundRectR0 = -1, n2BackgroundRectC0 = -1;
+        var newConnsDict = {};
+        function PrintConnects() {
+            var text = "Connections:";
+            for (var key in newConnsDict) {
+                var d = newConnsDict[key];
+                var param = d3RightTextNodesArrayZoomed[d.c],
+                    unknown = d3RightTextNodesArrayZoomed[d.r];
+                var paramName = (zoomedElement.promotions && zoomedElement.promotions[param.absPathName] !== undefined) ?
+                    "<b>" + zoomedElement.promotions[param.absPathName] + "</b>" :
+                    ((zoomedElement === root) ? param.absPathName : param.absPathName.slice(zoomedElement.absPathName.length+1));
+                var unknownName = (zoomedElement.promotions && zoomedElement.promotions[unknown.absPathName] !== undefined) ?
+                    "<b>" + zoomedElement.promotions[unknown.absPathName] + "</b>" :
+                    ((zoomedElement === root) ? unknown.absPathName : unknown.absPathName.slice(zoomedElement.absPathName.length+1));
+
+                text += "<br />self.connect(\"" + unknownName + "\", \"" + paramName + "\")";
+            }
+            document.getElementById("connectionId").innerHTML = text;
+        }
         var n2BackgroundRect = n2Group.append("rect")
             .attr("class", "background")
             .attr("width", WIDTH_N2_PX)
-            .attr("height", HEIGHT_PX);
+            .attr("height", HEIGHT_PX)
+            .on("click", function() {
+                if(!showParams) return;
+                var coords = d3.mouse(this);
+                var c = Math.floor(coords[0] * d3RightTextNodesArrayZoomed.length / WIDTH_N2_PX);
+                var r = Math.floor(coords[1] * d3RightTextNodesArrayZoomed.length / HEIGHT_PX);
+                if(r == c || r < 0 || c < 0 || r >= d3RightTextNodesArrayZoomed.length || c >= d3RightTextNodesArrayZoomed.length) return;
+                if(matrix[r + "_" + c] !== undefined) return;
+
+                var param = d3RightTextNodesArrayZoomed[c],
+                    unknown = d3RightTextNodesArrayZoomed[r];
+                if(param.type !== "param" || unknown.type !== "unknown") return;
+
+                var newClassName = "n2_hover_elements_" + r + "_" + c;
+                var selection = n2Group.selectAll("." + newClassName);
+                if(selection.size() > 0){
+                    delete newConnsDict[r + "_" + c];
+                    selection.remove();
+                }
+                else{
+                    newConnsDict[r + "_" + c] = {"r" : r, "c" : c};
+                    n2Group.selectAll("path.n2_hover_elements, circle.n2_hover_elements")
+                        .attr("class", newClassName);
+                }
+                PrintConnects();
+            })
+            .on("mouseover", function() {
+                n2BackgroundRectR0 = -1;
+                n2BackgroundRectC0 = -1;
+                n2Group.selectAll(".n2_hover_elements").remove();
+                PrintConnects();
+            })
+            .on("mouseleave", function() {
+                n2BackgroundRectR0 = -1;
+                n2BackgroundRectC0 = -1;
+                n2Group.selectAll(".n2_hover_elements").remove();
+                PrintConnects();
+            })
+            .on("mousemove", function() {
+                if(!showParams) return;
+                var coords = d3.mouse(this);
+                var c = Math.floor(coords[0] * d3RightTextNodesArrayZoomed.length / WIDTH_N2_PX);
+                var r = Math.floor(coords[1] * d3RightTextNodesArrayZoomed.length / HEIGHT_PX);
+                if(r == c || r < 0 || c < 0 || r >= d3RightTextNodesArrayZoomed.length || c >= d3RightTextNodesArrayZoomed.length) return;
+                if(matrix[r + "_" + c] !== undefined) return;
+                if(n2BackgroundRectR0 == r && n2BackgroundRectC0 == c) return;
+                //n2Group.selectAll(".n2_hover_elements_" + n2BackgroundRectR0 + "_" + n2BackgroundRectC0).remove();
+                n2Group.selectAll(".n2_hover_elements").remove();
+                n2BackgroundRectR0 = r;
+                n2BackgroundRectC0 = c;
+
+                var lineWidth = Math.min(5, n2Dx * .5, n2Dy * .5);
+                arrowMarker.attr("markerWidth", lineWidth * .4)
+                    .attr("markerHeight", lineWidth * .4);
+
+                var param = d3RightTextNodesArrayZoomed[c],
+                    unknown = d3RightTextNodesArrayZoomed[r];
+                if(param.type !== "param" || unknown.type !== "unknown") return;
+                if(r > c) { //bottom left
+                    DrawPathTwoLines(
+                        n2Dx*r, //x1
+                        n2Dy*r + n2Dy * .5, //y1
+                        n2Dx*c + n2Dx * .5, //left x2
+                        n2Dy*r + n2Dy * .5, //left y2
+                        n2Dx*c + n2Dx * .5, //up x3
+                        n2Dy*c + n2Dy - 1e-2, //up y3
+                        "blue", lineWidth, true);
+                }
+                else if(r < c) { //top right
+                    DrawPathTwoLines(
+                        n2Dx*r + n2Dx, //x1
+                        n2Dy*r + n2Dy * .5, //y1
+                        n2Dx*c + n2Dx * .5, //right x2
+                        n2Dy*r + n2Dy * .5, //right y2
+                        n2Dx*c + n2Dx * .5, //down x3
+                        n2Dy*c+1e-2, //down y3
+                        "blue", lineWidth, true);
+                }
+                var leftTextWidthR = d3RightTextNodesArrayZoomed[r].nameWidthPx,
+                    leftTextWidthC = d3RightTextNodesArrayZoomed[c].nameWidthPx;
+                DrawRect(-leftTextWidthR-PTREE_N2_GAP_PX, n2Dy*r, leftTextWidthR, n2Dy, "blue"); //highlight var name
+                DrawRect(-leftTextWidthC-PTREE_N2_GAP_PX, n2Dy*c, leftTextWidthC, n2Dy, "blue"); //highlight var name
+
+                PrintConnects();
+
+                if(newConnsDict[r + "_" + c] === undefined) {
+                    var paramName = (zoomedElement.promotions && zoomedElement.promotions[param.absPathName] !== undefined) ?
+                        "<b>" + zoomedElement.promotions[param.absPathName] + "</b>" :
+                        ((zoomedElement === root) ? param.absPathName : param.absPathName.slice(zoomedElement.absPathName.length+1));
+                    var unknownName = (zoomedElement.promotions && zoomedElement.promotions[unknown.absPathName] !== undefined) ?
+                        "<b>" + zoomedElement.promotions[unknown.absPathName] + "</b>" :
+                        ((zoomedElement === root) ? unknown.absPathName : unknown.absPathName.slice(zoomedElement.absPathName.length+1));
+
+                    document.getElementById("connectionId").innerHTML += "<br /><i style=\"color:red;\">self.connect(\"" + unknownName + "\", \"" + paramName + "\")</i>";
+                }
+            });
 
         var n2ElementsGroup = n2Group.append("g"),
             n2GridLinesGroup = n2Group.append("g"),
@@ -1142,6 +1257,8 @@
 
 
             ClearArrows();
+            newConnsDict = {};
+            PrintConnects();
             DrawMatrix();
         }
 
