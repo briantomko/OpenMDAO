@@ -282,7 +282,7 @@
                 </div>
             </div>
             <div class="button-group">
-                <button class="myButton" onclick="ClearArrows()" title="Clear Arrows">
+                <button class="myButton" onclick="ClearArrowsAndConnects()" title="Clear Arrows and Connections">
                     <i class="icon-eraser"></i>
                 </button>
                 <button class="myButton" id="showCurrentPathButton" onclick="ShowPathCheckboxChange()" title="Show Path">
@@ -1256,14 +1256,18 @@
                 .style("opacity", 0);
 
 
-            ClearArrows();
-            newConnsDict = {};
-            PrintConnects();
+            ClearArrowsAndConnects()
             DrawMatrix();
         }
 
         function ClearArrows(){
             n2Group.selectAll("[class^=n2_hover_elements]").remove();
+        }
+
+        function ClearArrowsAndConnects(){
+            ClearArrows();
+            newConnsDict = {};
+            PrintConnects();
         }
 
 
@@ -2855,7 +2859,7 @@
                 var newText = (i == height) ? ("<b>" + i + "px</b>" ) : (i + "px");
                 document.getElementById("idVerticalResize" + i + "px").innerHTML = newText;
             }
-            ClearArrows();
+            ClearArrowsAndConnects();
             HEIGHT_PX = height;
             LEVEL_OF_DETAIL_THRESHOLD = HEIGHT_PX / 3;
             WIDTH_N2_PX = HEIGHT_PX;
