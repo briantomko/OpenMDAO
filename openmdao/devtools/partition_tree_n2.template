@@ -369,9 +369,13 @@
         })();
     </script>
     <script type="text/javascript">
-    function PtN2Diagram(paramParentDivId, paramUniqueId) {
+    function PtN2Diagram(paramParentDivId, paramUniqueId, paramRootJson, paramConnsJson) {
         var parentDivId = paramParentDivId;
         var uniqueId = paramUniqueId;
+        var root = paramRootJson;
+        var zoomedElement = root;
+        var conns = paramConnsJson;
+
         var FONT_SIZE_PX = 11;
         var svgStyleElement = document.createElement("style");
 
@@ -497,7 +501,7 @@
             xScalerPTree0 = null,
             yScalerPTree0 = null,
             LEVEL_OF_DETAIL_THRESHOLD = HEIGHT_PX / 3; //3 pixels
-        var root;
+
         var sharedTransition;
         var DEFAULT_TRANSITION_START_DELAY = 100;
         var transitionStartDelay = DEFAULT_TRANSITION_START_DELAY;
@@ -749,10 +753,7 @@
 
 
 
-        var zoomedElement = root = % s;
 
-
-        var conns = % s;
 
 
         var zoomedElement0 = root;
@@ -2993,6 +2994,9 @@
 
         return function (){}
     }
-    PtN2Diagram("ptN2ContentDivId", "aaa"); //aaa is unique id (for multiple diagrams in a single page)
+
+    var rootJson = % s;
+    var connsJson = % s;
+    PtN2Diagram("ptN2ContentDivId", "aaa", rootJson, connsJson); //aaa is unique id (for multiple diagrams in a single page)
     </script>
 % s
