@@ -370,8 +370,8 @@
         })();
     </script>
     <script type="text/javascript">
-    function PtN2Diagram(paramParentDivId, paramUniqueId, paramRootJson, paramConnsJson) {
-        var parentDivId = paramParentDivId;
+    function PtN2Diagram(paramParentDiv, paramUniqueId, paramRootJson, paramConnsJson) {
+        var parentDiv = paramParentDiv;
         var uniqueId = paramUniqueId;
         var root = paramRootJson;
         var zoomedElement = root;
@@ -543,7 +543,7 @@
         ///////////////////////////
         //Modal Help Dialog Stuff
         ///////////////////////////
-        var modal = document.getElementById("myModal"+uniqueId);
+        var modal = parentDiv.querySelector("#myModal"+uniqueId);
 
         // When the user clicks the button, open the modal
         function DisplayModal() {
@@ -551,7 +551,7 @@
         }
 
         // When the user clicks on <span> (x), close the modal
-        document.getElementById("idSpanModalClose"+uniqueId).onclick = function() {
+        parentDiv.querySelector("#idSpanModalClose"+uniqueId).onclick = function() {
             modal.style.display = "none";
         }
 
@@ -562,16 +562,16 @@
             }
         }
 
+        var d3ContentDiv = parentDiv.querySelector("#d3_content_div"+uniqueId);
 
-
-        var svgDiv = d3.select("#d3_content_div"+uniqueId).append("div")
+        var svgDiv = d3.select(d3ContentDiv).append("div")
             .attr("class", "ptN2ChartClass");
 
         var svg = svgDiv.append("svg:svg")
             .attr("id","svgId"+uniqueId);
 
 
-        document.getElementById("svgId"+uniqueId).appendChild(svgStyleElement);
+        parentDiv.querySelector("#svgId"+uniqueId).appendChild(svgStyleElement);
         UpdateSvgCss();
 
 
@@ -613,7 +613,7 @@
 
                 text += "<br />self.connect(\"" + unknownName + "\", \"" + paramName + "\")";
             }
-            document.getElementById("connectionId"+uniqueId).innerHTML = text;
+            parentDiv.querySelector("#connectionId"+uniqueId).innerHTML = text;
         }
         var n2BackgroundRect = n2Group.append("rect")
             .attr("class", "background")
@@ -711,7 +711,7 @@
                         "<b>" + zoomedElement.promotions[unknown.absPathName] + "</b>" :
                         ((zoomedElement === root) ? unknown.absPathName : unknown.absPathName.slice(zoomedElement.absPathName.length+1));
 
-                    document.getElementById("connectionId"+uniqueId).innerHTML += "<br /><i style=\"color:red;\">self.connect(\"" + unknownName + "\", \"" + paramName + "\")</i>";
+                    parentDiv.querySelector("#connectionId"+uniqueId).innerHTML += "<br /><i style=\"color:red;\">self.connect(\"" + unknownName + "\", \"" + paramName + "\")</i>";
                 }
             });
 
@@ -891,7 +891,7 @@
                 filteredWordForAutoCompleteSuggestionsBaseName = filteredWordForAutoCompleteSuggestionsContainsDot ? filteredWordForAutoCompleteSuggestions.split(".")[0].trim() : "";
 
                 CountMatches();
-                document.getElementById("searchCountId"+uniqueId).innerHTML = "" + numMatches + " matches";
+                parentDiv.querySelector("#searchCountId"+uniqueId).innerHTML = "" + numMatches + " matches";
             }
         }
         window.addEventListener('input', SearchInputEventListener, true);//Use Capture not bubble so that this will be the first input event
@@ -920,7 +920,7 @@
         }
         window.addEventListener('keydown', SearchEnterKeyDownEventListener, true);//keydown so it will be before the input and awesomplete-selectcomplete event listeners
 
-        var searchInputId = document.getElementById("awesompleteId"+uniqueId);
+        var searchInputId = parentDiv.querySelector("#awesompleteId"+uniqueId);
         var searchAwesomplete = new Awesomplete(searchInputId, {
             "minChars": 1,
             "maxItems": 15,
@@ -947,7 +947,7 @@
                     if(i == wordIndex) cursorPos = newVal.length - 1;
                 }
                 this.input.value = newVal;
-                document.getElementById("awesompleteId"+uniqueId).setSelectionRange(cursorPos,cursorPos);
+                parentDiv.querySelector("#awesompleteId"+uniqueId).setSelectionRange(cursorPos,cursorPos);
             },
             "data": function (item/*, input*/) {
                 inDataFunction = true;
@@ -970,7 +970,7 @@
 
 
 
-        var collapseDepthElement = document.getElementById("idCollapseDepthDiv"+uniqueId);
+        var collapseDepthElement = parentDiv.querySelector("#idCollapseDepthDiv"+uniqueId);
         for(var i=2; i<=maxDepth; ++i) {
             var option = document.createElement("span");
             option.className = "fakeLink";
@@ -988,12 +988,12 @@
 
 
         function Update() {
-            document.getElementById("currentPathId"+uniqueId).innerHTML = "PATH: root" + ((zoomedElement.parent) ? "." : "") + zoomedElement.absPathName;
+            parentDiv.querySelector("#currentPathId"+uniqueId).innerHTML = "PATH: root" + ((zoomedElement.parent) ? "." : "") + zoomedElement.absPathName;
 
-            document.getElementById("backButtonId"+uniqueId).disabled = (backButtonHistory.length == 0) ? "disabled" : false;
-            document.getElementById("forwardButtonId"+uniqueId).disabled = (forwardButtonHistory.length == 0) ? "disabled" : false;
-            document.getElementById("upOneLevelButtonId"+uniqueId).disabled = (zoomedElement === root) ? "disabled" : false;
-            document.getElementById("returnToRootButtonId"+uniqueId).disabled = (zoomedElement === root) ? "disabled" : false;
+            parentDiv.querySelector("#backButtonId"+uniqueId).disabled = (backButtonHistory.length == 0) ? "disabled" : false;
+            parentDiv.querySelector("#forwardButtonId"+uniqueId).disabled = (forwardButtonHistory.length == 0) ? "disabled" : false;
+            parentDiv.querySelector("#upOneLevelButtonId"+uniqueId).disabled = (zoomedElement === root) ? "disabled" : false;
+            parentDiv.querySelector("#returnToRootButtonId"+uniqueId).disabled = (zoomedElement === root) ? "disabled" : false;
 
 
 
@@ -1003,7 +1003,7 @@
             ComputeMatrixN2();
 
             for(var i=2; i<=maxDepth; ++i){
-                document.getElementById("idCollapseDepthOption" + i + "" + uniqueId).style.display = (i <= zoomedElement.depth) ? "none" : "block";
+                parentDiv.querySelector("#idCollapseDepthOption" + i + "" + uniqueId).style.display = (i <= zoomedElement.depth) ? "none" : "block";
             }
 
             if(xScalerPTree0 != null){//not first run.. store previous
@@ -1527,7 +1527,7 @@
         function BackButtonPressed() {
             if(backButtonHistory.length == 0) return;
             var d = backButtonHistory.pop().el;
-            document.getElementById("backButtonId"+uniqueId).disabled = (backButtonHistory.length == 0) ? "disabled" : false;
+            parentDiv.querySelector("#backButtonId"+uniqueId).disabled = (backButtonHistory.length == 0) ? "disabled" : false;
             for (var obj = d; obj != null; obj = obj.parent) { //make sure history item is not minimized
                 if (obj.isMinimized) return;
             }
@@ -1539,7 +1539,7 @@
         function ForwardButtonPressed() {
             if(forwardButtonHistory.length == 0) return;
             var d = forwardButtonHistory.pop().el;
-            document.getElementById("forwardButtonId"+uniqueId).disabled = (forwardButtonHistory.length == 0) ? "disabled" : false;
+            parentDiv.querySelector("#forwardButtonId"+uniqueId).disabled = (forwardButtonHistory.length == 0) ? "disabled" : false;
             for (var obj = d; obj != null; obj = obj.parent) { //make sure history item is not minimized
                 if (obj.isMinimized) return;
             }
@@ -2554,11 +2554,11 @@
             var u = elementSize * .5;
             var v = u;
 
-            d3.select("#d3_content_div"+uniqueId).select("div.ptN2LegendClass").remove();
+            d3.select(d3ContentDiv).select("div.ptN2LegendClass").remove();
 
             if(!showLegend) return;
 
-            var svg_legend = d3.select("#d3_content_div"+uniqueId).append("div")
+            var svg_legend = d3.select(d3ContentDiv).append("div")
                 .attr("class", "ptN2LegendClass")
                 .style("width", legendWidth + "px")
                 .style("height", legendHeight + "px")
@@ -2735,7 +2735,7 @@
         function FontSizeSelectChange(fontSize){
             for(var i=8; i<=14; ++i) {
                 var newText = (i == fontSize) ? ("<b>" + i + "px</b>" ) : (i + "px");
-                document.getElementById("idFontSize" + i + "px"+uniqueId).innerHTML = newText;
+                parentDiv.querySelector("#idFontSize" + i + "px"+uniqueId).innerHTML = newText;
             }
             FONT_SIZE_PX = fontSize;
             TRANSITION_DURATION = TRANSITION_DURATION_FAST;
@@ -2746,7 +2746,7 @@
         function VerticalResize(height) {
             for(var i=600; i<=1000; i+=50) {
                 var newText = (i == height) ? ("<b>" + i + "px</b>" ) : (i + "px");
-                document.getElementById("idVerticalResize" + i + "px"+uniqueId).innerHTML = newText;
+                parentDiv.querySelector("#idVerticalResize" + i + "px"+uniqueId).innerHTML = newText;
             }
             ClearArrowsAndConnects();
             HEIGHT_PX = height;
@@ -2770,7 +2770,7 @@
         function ShowParamsCheckboxChange(){
             if(zoomedElement.type === "param") return;
             showParams = !showParams;
-            document.getElementById("showParamsButtonId"+uniqueId).className = showParams ? "myButton myButtonToggledOn" : "myButton";
+            parentDiv.querySelector("#showParamsButtonId"+uniqueId).className = showParams ? "myButton myButtonToggledOn" : "myButton";
 
             FindRootOfChangeFunction = FindRootOfChangeForShowParams;
             lastClickWasLeft = false;
@@ -2784,20 +2784,20 @@
 
         function ShowPathCheckboxChange(){
             showPath = !showPath;
-            document.getElementById("currentPathId"+uniqueId).style.display = showPath ? "block" : "none";
-            document.getElementById("showCurrentPathButtonId"+uniqueId).className = showPath ? "myButton myButtonToggledOn" : "myButton";
+            parentDiv.querySelector("#currentPathId"+uniqueId).style.display = showPath ? "block" : "none";
+            parentDiv.querySelector("#showCurrentPathButtonId"+uniqueId).className = showPath ? "myButton myButtonToggledOn" : "myButton";
         }
 
         function ToggleLegend(){
             showLegend = !showLegend;
-            document.getElementById("showLegendButtonId"+uniqueId).className = showLegend ? "myButton myButtonToggledOn" : "myButton";
+            parentDiv.querySelector("#showLegendButtonId"+uniqueId).className = showLegend ? "myButton myButtonToggledOn" : "myButton";
             SetupLegend();
         }
 
 
         function SaveSvg(){
             //get svg element.
-            var svgData = document.getElementById("svgId"+uniqueId).outerHTML;
+            var svgData = parentDiv.querySelector("#svgId"+uniqueId).outerHTML;
 
             //add name spaces.
             if(!svgData.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)){
@@ -2822,8 +2822,7 @@
         }
 
         function CreateDomLayout() {
-            var div = document.getElementById(parentDivId);
-            div.innerHTML =
+            parentDiv.innerHTML =
                 "<!-- The Modal -->" +
                 "<div id=\"myModal"+uniqueId+"\" class=\"modal\">" +
                 "    <!-- Modal content -->" +
@@ -2853,13 +2852,13 @@
                 "<div id=\"d3_content_div"+uniqueId+"\"></div>" +
                 "<div id=\"connectionId"+uniqueId+"\"></div>";
 
-            div.querySelector("#searchButtonId"+uniqueId).onclick = SearchButtonClicked;
+            parentDiv.querySelector("#searchButtonId"+uniqueId).onclick = SearchButtonClicked;
 
 
         }
 
         function CreateToolbar() {
-            var placeToAdd = document.getElementById("toolbarLoc"+uniqueId);
+            var placeToAdd = parentDiv.querySelector("#toolbarLoc"+uniqueId);
             var div = document.createElement("div");
             div.className = "toolbar";
             div.innerHTML =
@@ -2999,11 +2998,13 @@
         };
     }
 
+
+
     var rootJson = % s;
     var connsJson = % s;
     //var cloneRoot = JSON.parse(JSON.stringify(rootJson));
     //var cloneConns = JSON.parse(JSON.stringify(connsJson));
-    var aaa = PtN2Diagram("ptN2ContentDivId", "aaa", rootJson, connsJson); //aaa is unique id (for multiple diagrams in a single page)
-    //var bbb = PtN2Diagram("ptN2ContentDivId2", "bbb", cloneRoot, cloneConns);
+    var aaa = PtN2Diagram(document.querySelector("#ptN2ContentDivId"), "aaa", rootJson, connsJson); //aaa is unique id (for multiple diagrams in a single page)
+    //var bbb = PtN2Diagram(document.querySelector("#ptN2ContentDivId2"), "bbb", cloneRoot, cloneConns);
     </script>
 % s
