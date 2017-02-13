@@ -225,6 +225,7 @@
             <h1>OpenMDAO Partition Tree and N^2 diagram.</h1>
         </div>
         <div id="ptN2ContentDivId"></div>
+        <!--<div id="ptN2ContentDivId2"></div>-->
     </div>
 
 
@@ -456,7 +457,7 @@
             //"    dominant-baseline: middle; " +
             //"    dy: .35em; " +
             "} " +
-            "g.partition_group > text { " +
+            "#svgId"+uniqueId+" g.partition_group > text { " +
             "    text-anchor: end; " +
             "    pointer-events: none; " +
             "    font-family: helvetica, sans-serif; " +
@@ -570,7 +571,7 @@
             .attr("id","svgId"+uniqueId);
 
 
-        document.getElementsByTagName("svg")[0].appendChild(svgStyleElement);
+        document.getElementById("svgId"+uniqueId).appendChild(svgStyleElement);
         UpdateSvgCss();
 
 
@@ -2992,11 +2993,17 @@
 
         }
 
-        return function (){}
+        return {
+            GetFontSize : function(){return FONT_SIZE_PX;},
+            ResizeHeight: function(h){VerticalResize(h);}
+        };
     }
 
     var rootJson = % s;
     var connsJson = % s;
-    PtN2Diagram("ptN2ContentDivId", "aaa", rootJson, connsJson); //aaa is unique id (for multiple diagrams in a single page)
+    //var cloneRoot = JSON.parse(JSON.stringify(rootJson));
+    //var cloneConns = JSON.parse(JSON.stringify(connsJson));
+    var aaa = PtN2Diagram("ptN2ContentDivId", "aaa", rootJson, connsJson); //aaa is unique id (for multiple diagrams in a single page)
+    //var bbb = PtN2Diagram("ptN2ContentDivId2", "bbb", cloneRoot, cloneConns);
     </script>
 % s
