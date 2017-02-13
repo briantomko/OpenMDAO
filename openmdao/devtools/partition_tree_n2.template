@@ -224,8 +224,8 @@
         <div id="maintitle"%s>
             <h1>OpenMDAO Partition Tree and N^2 diagram.</h1>
         </div>
-        <div id="ptN2ContentDivId"></div>
-        <!--<div id="ptN2ContentDivId2"></div>-->
+        <!--<div id="ptN2ContentDivId"></div>
+        <div id="ptN2ContentDivId2"></div>-->
     </div>
 
 
@@ -236,6 +236,12 @@
     <script type="text/javascript">
         % s
     </script>
+
+    <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+    <script type="text/javascript" src="https://golden-layout.com/files/latest/js/goldenlayout.min.js"></script>
+    <link type="text/css" rel="stylesheet" href="https://golden-layout.com/files/latest/css/goldenlayout-base.css" />
+    <link type="text/css" rel="stylesheet" href="https://golden-layout.com/files/latest/css/goldenlayout-dark-theme.css" />
+
     <script type="text/javascript">
         /**
         * vkBeautify - javascript plugin to pretty-print or minify text in XML, JSON, CSS and SQL formats.
@@ -3002,9 +3008,49 @@
 
     var rootJson = % s;
     var connsJson = % s;
-    //var cloneRoot = JSON.parse(JSON.stringify(rootJson));
-    //var cloneConns = JSON.parse(JSON.stringify(connsJson));
-    var aaa = PtN2Diagram(document.querySelector("#ptN2ContentDivId"), "aaa", rootJson, connsJson); //aaa is unique id (for multiple diagrams in a single page)
-    //var bbb = PtN2Diagram(document.querySelector("#ptN2ContentDivId2"), "bbb", cloneRoot, cloneConns);
+    var cloneRoot = JSON.parse(JSON.stringify(rootJson));
+    var cloneConns = JSON.parse(JSON.stringify(connsJson));
+
+    var config = {
+        content: [{
+            type: 'row',
+            content:[{
+                type: 'component',
+                componentName: 'testComponent',
+                componentState: {
+                    label: 'A',
+                    divId : "ptN2ContentDivId",
+                    uniqueId : "aaa",
+                    root: rootJson,
+                    conns: connsJson
+                }
+            },{
+                type: 'column',
+                content:[{
+                    type: 'component',
+                    componentName: 'testComponent',
+                    componentState: {
+                        label: 'B',
+                        divId : "ptN2ContentDivId2",
+                        uniqueId : "bbb",
+                        root: cloneRoot,
+                        conns: cloneConns
+                    }
+                }]
+            }]
+        }]
+    };
+    var myLayout = new GoldenLayout( config );
+    myLayout.registerComponent( 'testComponent', function( container, componentState ){
+        container.getElement().html( "<div id=\"" + componentState.divId + "\"></div>" );
+        var parentDiv = container.getElement().get(0).querySelector("#"+componentState.divId);
+        //document.getElementById(componentState.divId).innerHTML = "hi";
+        //if(componentState.uniqueId === "aaa"){
+            PtN2Diagram(parentDiv, componentState.uniqueId, componentState.root, componentState.conns); //aaa is unique id (for multiple diagrams in a single page)
+        //}
+        container.on("resize",function(){console.log(container.height);});
+    });
+    myLayout.init();
+
     </script>
 % s
