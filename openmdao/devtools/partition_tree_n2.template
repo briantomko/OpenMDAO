@@ -224,10 +224,11 @@
         <div id="maintitle"%s>
             <h1>OpenMDAO Partition Tree and N^2 diagram.</h1>
         </div>
+
         <!--<div id="ptN2ContentDivId"></div>
         <div id="ptN2ContentDivId2"></div>-->
     </div>
-
+    <div id="goldenWindowId" style="height:90vh; width:90vw;margin:0px auto;">
 
     <!-- insert d3 library below this line -->
     % s
@@ -240,7 +241,7 @@
     <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
     <script type="text/javascript" src="https://golden-layout.com/files/latest/js/goldenlayout.min.js"></script>
     <link type="text/css" rel="stylesheet" href="https://golden-layout.com/files/latest/css/goldenlayout-base.css" />
-    <link type="text/css" rel="stylesheet" href="https://golden-layout.com/files/latest/css/goldenlayout-dark-theme.css" />
+    <link type="text/css" rel="stylesheet" href="https://golden-layout.com/files/latest/css/goldenlayout-light-theme.css" />
 
     <script type="text/javascript">
         /**
@@ -3000,7 +3001,8 @@
 
         return {
             GetFontSize : function(){return FONT_SIZE_PX;},
-            ResizeHeight: function(h){VerticalResize(h);}
+            ResizeHeight: function(h){VerticalResize(h);},
+            Redraw: function(){Update();}
         };
     }
 
@@ -3040,17 +3042,33 @@
             }]
         }]
     };
-    var myLayout = new GoldenLayout( config );
+    var glApps = [];
+    var myLayout = new GoldenLayout( config, document.getElementById("goldenWindowId"));
     myLayout.registerComponent( 'testComponent', function( container, componentState ){
         container.getElement().html( "<div id=\"" + componentState.divId + "\"></div>" );
         var parentDiv = container.getElement().get(0).querySelector("#"+componentState.divId);
-        //document.getElementById(componentState.divId).innerHTML = "hi";
-        //if(componentState.uniqueId === "aaa"){
-            PtN2Diagram(parentDiv, componentState.uniqueId, componentState.root, componentState.conns); //aaa is unique id (for multiple diagrams in a single page)
-        //}
-        container.on("resize",function(){console.log(container.height);});
+        //document.getElementById(componentState.divId).innerHTML = "hi"; //fails because not in document yet
+        var app = PtN2Diagram(parentDiv, componentState.uniqueId, componentState.root, componentState.conns);
+        glApps.push(app);
+        //componentState.app = app;
+        container.on("resize",function(){
+            console.log(container.height);
+            if(container.height > 0){
+                app.ResizeHeight(container.height * .5);
+            }
+        });
+    });
+    myLayout.on("initialised",function(){
+        console.log("inited");
+        glApps.forEach(function(el){
+            el.Redraw();
+        });
+    });
+    myLayout.on("componentCreated", function( component ){
+        console.log("cc");
     });
     myLayout.init();
+    console.log("calledi");
 
     </script>
 % s
