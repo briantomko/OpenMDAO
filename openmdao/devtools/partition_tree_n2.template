@@ -224,12 +224,11 @@
         <div id="maintitle"%s>
             <h1>OpenMDAO Partition Tree and N^2 diagram.</h1>
         </div>
-
         <!--<div id="ptN2ContentDivId"></div>
         <div id="ptN2ContentDivId2"></div>-->
     </div>
     <div id="goldenWindowId" style="height:90vh; width:90vw;margin:0px auto;">
-
+    <script type="text/javascript" src="https://cdn.plot.ly/plotly-latest.js"></script>
     <!-- insert d3 library below this line -->
     % s
 
@@ -3038,6 +3037,26 @@
                         root: cloneRoot,
                         conns: cloneConns
                     }
+                },{
+                    type: 'component',
+                    componentName: 'testPlot',
+                    componentState: {
+                        label: 'C',
+                        divId : "plotlyDivId",
+                        uniqueId : "ccc",
+                        xData: [1, 2, 3, 4, 5],
+                        yData: [1, 2, 4, 8, 16]
+                    }
+                },{
+                    type: 'component',
+                    componentName: 'testPlot',
+                    componentState: {
+                        label: 'D',
+                        divId : "plotlyDivId2",
+                        uniqueId : "ddd",
+                        xData: [1, 2, 3, 4, 5, 6, 7],
+                        yData: [100, 20, 10, 61, 3, 30, 25]
+                    }
                 }]
             }]
         }]
@@ -3058,6 +3077,27 @@
             }
         });
     });
+    myLayout.registerComponent( 'testPlot', function( container, componentState ){
+        container.getElement().html( "<div id=\"" + componentState.divId + "\"></div>" );
+        var parentDiv = container.getElement().get(0).querySelector("#"+componentState.divId);
+        Plotly.plot( parentDiv, [{
+            x: componentState.xData,
+            y: componentState.yData }], {
+            margin: { t: 0 } } );
+        container.on("resize",function(){
+            console.log(container.height);
+            if(container.height > 0){
+                var update = {
+                  width: container.width,  // or any new width
+                  height: container.height  // " "
+                };
+
+                Plotly.relayout(parentDiv, update);
+            }
+        });
+    });
+
+
     myLayout.on("initialised",function(){
         console.log("inited");
         glApps.forEach(function(el){
@@ -3069,6 +3109,5 @@
     });
     myLayout.init();
     console.log("calledi");
-
     </script>
 % s
